@@ -16,5 +16,5 @@ cvx_begin sdp quiet
         -loss*eye(d) <= PartialTranspose(S, 2) <= loss * eye(d);
         -S <= PartialTranspose(R, 2) <= S;
 cvx_end
-val_dual = loss;
+val_dual = -2*log2(loss);
 end
