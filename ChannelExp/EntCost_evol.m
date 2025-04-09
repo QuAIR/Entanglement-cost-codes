@@ -40,26 +40,7 @@ for t = 0:1/T:T_e
     Eeta_JN = Eeta(JNstateperm);
     [Lami, ~] = LRbound(JNstateperm);
     ELami_JN = Lami;
-
-    % our bounds
-    cvx_begin sdp quiet
-    % cvx_solver SDP3
-    cvx_precision best
-        variable Q(dAB^2, dAB^2) hermitian
-        variable R(dAB^2, dAB^2) hermitian
-        variable S(dAB^2, dAB^2) hermitian
-
-        loss = trace(JNstate*Q);
-        minimize loss
-        subject to
-            [Q -eye(dAB^2);
-             -eye(dAB^2) R] >= 0;
-            -loss*eye(dAB^2) <= PartialTranspose(S, [2,4], [dA, dB, dA, dB]) <= loss * eye(dAB^2);
-            -S <= PartialTranspose(R, [2,4], [dA, dB, dA, dB]) <= S;
-    cvx_end
-    val = loss;
-
-    data_store{end+1} = [-2*log2(val); Eeta_JN; ELami_JN];
+    data_store{end+1} = [logfid_bineg_dual(JNstateperm); Eeta_JN; ELami_JN];
     t
 end
 

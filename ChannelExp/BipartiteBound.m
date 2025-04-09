@@ -33,25 +33,41 @@ for j=1:numel(p)
     JNcomp = PartialTrace(kron(JNTB, eye(dAB))*kron(eye(dAB), Jnoise), 2, [dAB,dAB,dAB]);
     JNstate = JNcomp/trace(JNcomp);
 
-    cvx_begin sdp quiet
-    % cvx_solver SDP3
-    cvx_precision best
-        variable Q(dAB^2,dAB^2) hermitian
-        variable R(dAB^2,dAB^2) hermitian
-        variable S(dAB^2,dAB^2) hermitian
+    data_store(1, j) = logfid_bineg_dual_channel(JNstate, [dA,dB]);
+    data_store(2, j) = MaxLogNeg(JNstate, [dA,dB]);
 
-        loss = trace(JNstate*Q);
-        minimize loss
-        subject to
-            [Q -eye(dAB^2);
-             -eye(dAB^2) R] >= 0;
-            -loss*eye(dAB^2) <= PartialTranspose(S, [2,4], [dA, dB, dA, dB]) <= loss * eye(dAB^2);
-            -S <= PartialTranspose(R, [2,4], [dA, dB, dA, dB]) <= S;
-    cvx_end
-    val = loss;
-
-    data_store(1, j) = -2*log2(val);
     j
+
+end
+
+%% logfid channels
+function val_dual = logfid_bineg_dual_channel(rho, dim)
+dA = dim(1);
+dB = dim(2);
+dAB = dA*dB;
+cvx_begin sdp quiet
+    cvx_solver sedumi
+    cvx_precision best
+    
+    variable Q(dAB^2,dAB^2) hermitian
+    variable R(dAB^2,dAB^2) hermitian
+    variable U(dAB^2,dAB^2) hermitian
+    variable V(dAB^2,dAB^2) hermitian
+    
+    t_dual = real(trace(Q*rho));
+    
+    minimize t_dual
+    
+        subject to
+        U >= 0; V >= 0;
+        [Q, -eye(dAB^2);
+        -eye(dAB^2), R] >= 0;
+        R <= PartialTranspose(U-V, [2,4], [dA, dB, dA, dB]);
+        PartialTranspose(U+V, [2,4], [dA, dB, dA, dB]) >= -trace(Q*rho)*eye(dAB^2);
+        PartialTranspose(U+V, [2,4], [dA, dB, dA, dB]) <= trace(Q*rho)*eye(dAB^2);
+    
+cvx_end
+val_dual = -2*log2(t_dual);
 
 end
 
